@@ -35,7 +35,22 @@ class Sigmoid:
     Define 'backward' function.
     Read the writeup (Hint: Sigmoid Section) for further details on Sigmoid forward and backward expressions.
     """
+    def forward(self, Z):
+        """
+        :param Z:(N samples, C features) .
+        :return: computed output A (N samples, C features).
+        """
+        self.A = 1 / (1 + np.exp(-Z))
+        return self.A
 
+    def backward(self, dLdA):
+        """
+        :param dLdA: Gradient of loss wrt post-activation output (a measure of how the output A affect the loss L)
+        :return: Gradient of loss with respect to pre-activation input (a measure of how the input Z affect the loss L)
+        """
+        dAdZ = self.A * (1 - self.A)
+        dLdZ = dLdA * dAdZ
+        return dLdZ
 
 class Tanh:
     """
@@ -48,6 +63,22 @@ class Tanh:
     Read the writeup (Hint: Tanh Section) for further details on Tanh forward and backward expressions.
     """
 
+    def forward(self, Z):
+        """
+        :param Z: (N samples, C features) .
+        :return: computed output A (N samples, C features).
+        """
+        self.A = np.tanh(Z)
+        return self.A
+
+    def backward(self, dLdA):
+        """
+        :param dLdA: Gradient of loss wrt post-activation output 
+        :return: Gradient of loss with respect to pre-activation input 
+        """
+        dAdZ = 1 - self.A ** 2
+        dLdZ = dLdA * dAdZ
+        return dLdZ
 
 class ReLU:
     """
@@ -59,6 +90,23 @@ class ReLU:
     Define 'backward' function.
     Read the writeup (Hint: ReLU Section) for further details on ReLU forward and backward expressions.
     """
+
+    def forward(self, Z):
+        """
+        :param Z: (N samples, C features) .
+        :return: computed output A (N samples, C features).
+        """
+        self.A = np.maximum(0, Z)
+        return self.A
+
+    def backward(self, dLdA):
+        """
+        :param dLdA: Gradient of loss wrt post-activation output
+        :return: Gradient of loss with respect to pre-activation input
+        """
+        dAdZ = np.where(self.A > 0, 1, 0)
+        dLdZ = dLdA * dAdZ
+        return dLdZ
 
 
 class GELU:
@@ -73,6 +121,23 @@ class GELU:
     Note: Feel free to save any variables from gelu.forward that you might need for gelu.backward.
     """
 
+    def forward(self, Z):
+        """
+        :param Z: (N samples, C features) .
+        :return: computed output A (N samples, C features).
+        """
+        self.A = 0.5 * Z * (1 + scipy.special.erf(Z / np.sqrt(2)))
+        return self.A
+
+    def backward(self, dLdA):
+        """
+        :param dLdA: Gradient of loss wrt post-activation output
+        :return: Gradient of loss with respect to pre-activation input
+        """
+        dAdZ = 0.5 * (1 + scipy.special.erf(Z / np.sqrt(2))) + (Z * np.exp(-Z**2 / 2)) / (np.sqrt(2 * np.pi))
+        dLdZ = dLdA * dAdZ
+        return dLdZ
+
 class Swish:
     """
     Swish activation function.
@@ -84,6 +149,25 @@ class Swish:
     Read the writeup (Hint: Swish Section) for further details on Swish forward and backward expressions.
     """
 
+    def __init__(self, beta=1.0):
+        self.beta = beta
+
+    def forward(self, Z):
+        """
+        :param Z: (N samples, C features) .
+        :return: computed output A (N samples, C features).
+        """
+        self.A = Z * scipy.special.expit(self.beta * Z)
+        return self.A
+
+    def backward(self, dLdA):
+        """
+        :param dLdA: Gradient of loss wrt post-activation output
+        :return: Gradient of loss with respect to pre-activation input
+        """
+        dAdZ = self.beta * scipy.special.expit(self.beta * Z) + scipy.special.expit(self.beta * Z) * (1 - scipy.special.expit(self.beta * Z))
+        dLdZ = dLdA * dAdZ
+        return dLdZ
 
 class Softmax:
     """
@@ -103,30 +187,31 @@ class Softmax:
         It will use an entire row of Z to compute an output element.
         Note: How can we handle large overflow values? Hint: Check numerical stability.
         """
-        self.A = None  # TODO
-        raise NotImplementedError  # TODO - What should be the return value?
+        self.A = np.exp(Z - np.max(Z, axis=1, keepdims=True))
+        self.A /= np.sum(self.A, axis=1, keepdims=True)
+        return self.A
 
     def backward(self, dLdA):
         # Calculate the batch size and number of features
-        N = None  # TODO
-        C = None  # TODO
-
+        N = self.A.shape[0]
+        C = self.A.shape[1]
+    
         # Initialize the final output dLdZ with all zeros. Refer to the writeup and think about the shape.
-        dLdZ = None  # TODO
+        dLdZ = np.zeros((N, C))
 
         # Fill dLdZ one data point (row) at a time.
         for i in range(N):
             # Initialize the Jacobian with all zeros.
             # Hint: Jacobian matrix for softmax is a _×_ matrix, but what is _ here?
-            J = None  # TODO
+            J = np.zeros((C, C))
 
             # Fill the Jacobian matrix, please read the writeup for the conditions.
             for m in range(C):
                 for n in range(C):
-                    J[m, n] = None  # TODO
+                    J[m, n] = self.A[i, m] * (1 if m == n else 0 - self.A[i, n])
 
             # Calculate the derivative of the loss with respect to the i-th input, please read the writeup for it.
             # Hint: How can we use (1×C) and (C×C) to get (1×C) and stack up vertically to give (N×C) derivative matrix?
-            dLdZ[i, :] = None  # TODO
+            dLdZ[i, :] = dLdA[i, :] @ J
 
-        raise NotImplementedError  # TODO - What should be the return value?
+        return dLdZ

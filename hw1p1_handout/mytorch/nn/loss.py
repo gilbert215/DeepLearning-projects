@@ -13,12 +13,12 @@ class MSELoss:
         """
         self.A = A
         self.Y = Y
-        self.N = None  # TODO
-        self.C = None  # TODO
-        se = None  # TODO
-        sse = None  # TODO
-        mse = None  # TODO
-        raise NotImplemented  # TODO - What should be the return value?
+        self.N = A.shape[0]
+        self.C = A.shape[1]
+        se = np.square(A - Y)
+        sse = np.sum(se)
+        mse = sse / self.N
+        return mse
 
     def backward(self):
         """
@@ -27,8 +27,8 @@ class MSELoss:
 
         Read the writeup (Hint: MSE Loss Section) for implementation details for below code snippet.
         """
-        dLdA = None
-        raise NotImplemented  # TODO - What should be the return value?
+        dLdA = 2 * (self.A - self.Y) / self.N
+        return dLdA
 
 
 class CrossEntropyLoss:
@@ -45,19 +45,20 @@ class CrossEntropyLoss:
         """
         self.A = A
         self.Y = Y
-        self.N = None  # TODO
-        self.C = None  # TODO
+        self.N = A.shape[0]
+        self.C = A.shape[1]
 
-        Ones_C = None  # TODO
-        Ones_N = None  # TODO
+        Ones_C = np.ones((1, self.C), dtype='f')
+        Ones_N = np.ones((self.N, 1), dtype='f')
 
-        self.softmax = None  # TODO - Can you reuse your own softmax here, if not rewrite the softmax forward logic?
+        self.softmax = Softmax()  # TODO - Can you reuse your own softmax here, if not rewrite the softmax forward logic?
+        A_softmax = self.softmax.forward(A)
 
-        crossentropy = None  # TODO
-        sum_crossentropy_loss = None  # TODO
+        crossentropy = -np.log(A_softmax) * Y
+        sum_crossentropy_loss = np.sum(crossentropy)
         mean_crossentropy_loss = sum_crossentropy_loss / self.N
 
-        raise NotImplemented  # TODO - What should be the return value?
+        return mean_crossentropy_loss
 
     def backward(self):
         """
@@ -66,5 +67,5 @@ class CrossEntropyLoss:
 
         Read the writeup (Hint: Cross-Entropy Loss Section) for implementation details for below code snippet.
         """
-        dLdA = None  # TODO
-        raise NotImplemented  # TODO - What should be the return value?
+        dLdA = self.softmax.backward()
+        return dLdA
