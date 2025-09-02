@@ -1,3 +1,4 @@
+
 import numpy as np
 
 
@@ -6,7 +7,6 @@ class MSELoss:
         """
         Calculate the Mean Squared error (MSE)
         :param A: Output of the model of shape (N, C)
-        :param Y: Ground-truth values of shape (N, C)
         :Return: MSE Loss (scalar)
 
         Read the writeup (Hint: MSE Loss Section) for implementation details for below code snippet.
@@ -15,9 +15,9 @@ class MSELoss:
         self.Y = Y
         self.N = A.shape[0]
         self.C = A.shape[1]
-        se = np.square(A - Y)
+        se = (A - Y) ** 2
         sse = np.sum(se)
-        mse = sse / self.N
+        mse = sse / (self.N * self.C)
         return mse
 
     def backward(self):
@@ -27,7 +27,7 @@ class MSELoss:
 
         Read the writeup (Hint: MSE Loss Section) for implementation details for below code snippet.
         """
-        dLdA = 2 * (self.A - self.Y) / self.N
+        dLdA = 2 * (self.A - self.Y) / (self.N * self.C)
         return dLdA
 
 
@@ -48,14 +48,16 @@ class CrossEntropyLoss:
         self.N = A.shape[0]
         self.C = A.shape[1]
 
-        Ones_C = np.ones((1, self.C), dtype='f')
-        Ones_N = np.ones((self.N, 1), dtype='f')
+        Ones_C = np.ones((self.C, 1), dtype='f')
+        Ones_N = np.ones((1, self.N), dtype='f')
 
-        self.softmax = Softmax()  # TODO - Can you reuse your own softmax here, if not rewrite the softmax forward logic?
-        A_softmax = self.softmax.forward(A)
+        M = np.max(A, axis=1, keepdims=True)
+        exp = np.exp(A - M)
+        sum_exp = np.sum(exp, axis=1, keepdims=True)
+        self.softmax = exp / sum_exp
 
-        crossentropy = -np.log(A_softmax) * Y
-        sum_crossentropy_loss = np.sum(crossentropy)
+        crossentropy = (-self.Y * np.log(self.softmax)) @ Ones_C
+        sum_crossentropy_loss = Ones_N @ crossentropy
         mean_crossentropy_loss = sum_crossentropy_loss / self.N
 
         return mean_crossentropy_loss
@@ -67,5 +69,5 @@ class CrossEntropyLoss:
 
         Read the writeup (Hint: Cross-Entropy Loss Section) for implementation details for below code snippet.
         """
-        dLdA = self.softmax.backward()
+        dLdA = (self.softmax - self.Y) / self.N
         return dLdA

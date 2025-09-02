@@ -33,20 +33,21 @@ class BatchNorm1d:
         Check the values you need to recompute when eval = False.
         """
         self.Z = Z
-        self.N = Z.shape[0]
-        self.M = np.mean(Z, axis=0, keepdims=True)
-        self.V = np.var(Z, axis=0, keepdims=True)
+
+        self.N = self.Z.shape[0]
+        self.M = np.mean(self.Z, axis=0, keepdims=True)
+        self.V = np.var(self.Z, axis=0, keepdims=True)
 
         if eval == False:
             # training mode
-            self.NZ = (Z - self.M) / np.sqrt(self.V + self.eps)
+            self.NZ = (self.Z - self.M) / np.sqrt(self.V + self.eps)
             self.BZ = self.BW * self.NZ + self.Bb
 
             self.running_M = self.alpha * self.running_M + (1 - self.alpha) * self.M
             self.running_V = self.alpha * self.running_V + (1 - self.alpha) * self.V
         else:
             # inference mode
-            self.NZ = (Z - self.running_M) / np.sqrt(self.running_V + self.eps)
+            self.NZ = (self.Z - self.running_M) / np.sqrt(self.running_V + self.eps)
             self.BZ = self.BW * self.NZ + self.Bb
 
         return self.BZ
@@ -60,13 +61,16 @@ class BatchNorm1d:
         Read the writeup (Hint: Batch Normalization Section) for implementation details for the BatchNorm1d backward.
         """
         self.dLdBb = np.sum(dLdBZ, axis=0, keepdims=True)
-        self.dLdBW = dLdNZ * self.NZ
+        self.dLdBW = np.sum(dLdBZ * self.NZ, axis=0, keepdims=True)
 
-        dLdNZ = self.BW * dLdBZ
+        dLdNZ = dLdBZ * self.BW
 
-        dLdV = -0.5 * np.sum(dLdNZ * (self.Z - self.M), axis=0, keepdims=True) / (self.V + self.eps)
-        dNZdM = -1 / np.sqrt(self.V + self.eps)
-        dLdM = np.sum(dLdNZ * dNZdM, axis=0, keepdims=True)
+        sigma = np.sqrt(self.V + self.eps)
+        inv_sigma = 1. / sigma
 
-        dLdZ = dLdNZ * (1 / np.sqrt(self.V + self.eps)) + dLdM / self.N
+        dLdV = -0.5 / (self.V + self.eps) * np.sum(dLdNZ * self.NZ, axis=0, keepdims=True)
+        dNZdM = -inv_sigma
+        dLdM = np.sum(dLdNZ, axis=0, keepdims=True) * dNZdM
+
+        dLdZ = dLdNZ * inv_sigma + dLdM / self.N + dLdV * (2 / self.N) * (self.Z - self.M)
         return dLdZ

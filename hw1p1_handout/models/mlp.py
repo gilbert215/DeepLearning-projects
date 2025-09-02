@@ -54,12 +54,7 @@ class MLP1:
         Implement it on the same lines (in a list) as in the MLP0 class.
         """
         self.debug = debug
-        self.layers = [
-            Linear(2, 3),
-            ReLU(),
-            Linear(3, 2),
-            ReLU()
-        ]
+        self.layers = [Linear(2, 3), ReLU(), Linear(3, 2), ReLU()]
 
     def forward(self, A0):
         """
@@ -101,7 +96,6 @@ class MLP1:
 
         return dLdA0
 
-
 class MLP4:
     def __init__(self, debug=False):
         """
@@ -118,17 +112,7 @@ class MLP4:
         """
         # Note: List of Hidden and Activation Layers in the correct order.
         self.debug = debug
-        self.layers = [
-            Linear(2, 4),
-            ReLU(),
-            Linear(4, 8),
-            ReLU(),
-            Linear(8, 8),
-            ReLU(),
-            Linear(8, 4),
-            ReLU(),
-            Linear(4, 2)
-        ]
+        self.layers = [Linear(2, 4), ReLU(), Linear(4, 8), ReLU(), Linear(8, 8), ReLU(), Linear(8, 4), ReLU(), Linear(4, 2), ReLU()]
 
     def forward(self, A):
         """
@@ -145,7 +129,9 @@ class MLP4:
             A = self.layers[i].forward(A)
             if self.debug:
                 self.A.append(A)
+
         return A
+
     def backward(self, dLdA):
         """
         Create your own mytorch.models.MLP4!
