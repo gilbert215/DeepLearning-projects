@@ -18,12 +18,8 @@ class Linear:
         :param A: Input with shape (N, C_in)
         :return: Output Z with shape (N, C_out)
         """
-        self.A = A  # Store for backward pass
+        self.A = A 
         self.N = A.shape[0]  # Store batch size
-        
-        # Equation (1) from writeup: Z = A · W^T + ι_N · b^T
-        # A: (N, C_in), W^T: (C_in, C_out) -> A @ W^T: (N, C_out)
-        # ι_N: (N, 1), b^T: (1, C_out) -> ι_N @ b^T: (N, C_out)
         Z = A @ self.W.T + np.ones((self.N, 1)) @ self.b.T
         
         return Z
