@@ -87,16 +87,16 @@ class GRUCell(object):
         self.x = x
         self.hidden = h_prev_t
 
-        # Compute reset gate: rt = σ(Wrx · xt + brx + Wrh · ht−1 + brh)
+        # Compute reset gate
         self.r = self.r_act.forward(self.Wrx @ x + self.brx + self.Wrh @ h_prev_t + self.brh)
         
-        # Compute update gate: zt = σ(Wzx · xt + bzx + Wzh · ht−1 + bzh)
+        # Compute update gate
         self.z = self.z_act.forward(self.Wzx @ x + self.bzx + self.Wzh @ h_prev_t + self.bzh)
         
-        # Compute candidate hidden state: nt = tanh(Wnx · xt + bnx + rt ⊙ (Wnh · ht−1 + bnh))
+        # Compute candidate hidden state
         self.n = self.h_act.forward(self.Wnx @ x + self.bnx + self.r * (self.Wnh @ h_prev_t + self.bnh))
         
-        # Compute final hidden state: ht = (1 − zt) ⊙ nt + zt ⊙ ht−1
+        # Compute final hidden state
         h_t = (1 - self.z) * self.n + self.z * h_prev_t
 
         assert self.x.shape == (self.d,)
@@ -105,7 +105,7 @@ class GRUCell(object):
         assert self.r.shape == (self.h,)
         assert self.z.shape == (self.h,)
         assert self.n.shape == (self.h,)
-        assert h_t.shape == (self.h,)  # h_t is the final output of you GRU cell.
+        assert h_t.shape == (self.h,)
 
         return h_t
 
@@ -135,7 +135,7 @@ class GRUCell(object):
         x_col = self.x.reshape(-1, 1) 
         h_col = self.hidden.reshape(-1, 1)  
         
-        # Gradients from h_t = (1 - z) * n + z * h_prev_t
+        # Gradients
         dh_dz = -self.n + self.hidden 
         dh_dn = 1 - self.z 
         dh_dh_prev = self.z 
@@ -143,24 +143,18 @@ class GRUCell(object):
         dz = delta * dh_dz 
         dn = delta * dh_dn  
         
-        # Gradients from n = tanh(Wnx @ x + bnx + r * (Wnh @ h_prev_t + bnh))
-        # Derivative of tanh
         dn_pre_act = dn * (1 - self.n**2)
         
         # Gradients for n
         self.dWnx = np.outer(dn_pre_act, self.x)  
         self.dbnx = dn_pre_act  
         
-        # For the term r * (Wnh @ h_prev_t + bnh)
         Wnh_h = self.Wnh @ self.hidden 
         dr = dn_pre_act * (Wnh_h + self.bnh)  
         
         dWnh_h_plus_bnh = dn_pre_act * self.r  
         self.dWnh = np.outer(dWnh_h_plus_bnh, self.hidden)  
         self.dbnh = dWnh_h_plus_bnh 
-        
-        # Gradients from z = σ(Wzx @ x + bzx + Wzh @ h_prev_t + bzh)
-        # Derivative of sigmoid
         dz_pre_act = dz * self.z * (1 - self.z) 
         
         self.dWzx = np.outer(dz_pre_act, self.x)  
@@ -168,7 +162,7 @@ class GRUCell(object):
         self.dWzh = np.outer(dz_pre_act, self.hidden)  
         self.dbzh = dz_pre_act  
         
-        # Gradients from r = σ(Wrx @ x + brx + Wrh @ h_prev_t + brh)
+
         # Derivative of sigmoid
         dr_pre_act = dr * self.r * (1 - self.r) 
         
@@ -177,7 +171,7 @@ class GRUCell(object):
         self.dWrh = np.outer(dr_pre_act, self.hidden) 
         self.dbrh = dr_pre_act 
         
-        # 5. Gradients wrt inputs (x and h_prev_t)
+        # Gradients wrt inputs (x and h_prev_t)
         dx = self.Wnx.T @ dn_pre_act + self.Wzx.T @ dz_pre_act + self.Wrx.T @ dr_pre_act
         
         dh_prev_t = (delta * dh_dh_prev + 

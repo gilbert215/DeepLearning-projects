@@ -22,7 +22,7 @@ class RNNPhonemeClassifier(object):
         ]
         self.output_layer = Linear(hidden_size, output_size)
 
-        # store hidden states at each time step, [(seq_len+1) * (num_layers, batch_size, hidden_size)]
+        # store hidden states at each time step,
         self.hiddens = []
 
     def init_weights(self, rnn_weights, linear_weights):
@@ -74,13 +74,11 @@ class RNNPhonemeClassifier(object):
         self.x = x
         self.hiddens.append(hidden.copy())
         
-        # Iterate through the sequence (time steps)
+        # Iterate through the sequence
         for t in range(seq_len):
             # Iterate over the layers
             for l in range(self.num_layers):
-                # Get input for this layer
-                # Layer 0: input from x at time t
-                # Other layers: input from previous layer's hidden state at time t
+                # Get input for this layer at time t
                 if l == 0:
                     input_t = x[:, t, :]  
                 else:
@@ -97,7 +95,7 @@ class RNNPhonemeClassifier(object):
         
         # Get the outputs from the last time step using the linear layer
         # Use the last layer's hidden state at the last time step
-        logits = self.output_layer.forward(hidden[-1])  # (batch_size, output_size)
+        logits = self.output_layer.forward(hidden[-1]) 
         
         return logits
 
@@ -127,9 +125,7 @@ class RNNPhonemeClassifier(object):
         for t in range(seq_len - 1, -1, -1):
             # Iterate in reverse order of layers (from num_layers-1 to 0)
             for l in range(self.num_layers - 1, -1, -1):
-                # Get h_prev_l either from hiddens or x depending on the layer
-                # hiddens[t+1] contains hidden states after processing time step t
-                # hiddens[t] contains hidden states before processing time step t
+                # Input to layer l at time t
                 if l == 0:
                     h_prev_l = self.x[:, t, :] 
                 else:

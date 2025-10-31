@@ -65,8 +65,6 @@ class RNNCell(object):
     
         """ ht = tanh(Wihxt + bih + Whhht−1 + bhh) """
 
-        # Compute: h_t = tanh(W_ih @ x.T + b_ih + W_hh @ h_prev_t.T + b_hh)
-        # Using transposed weights for proper matrix multiplication with batched inputs
         h_t = self.activation.forward(x @ self.W_ih.T + self.b_ih + 
                                        h_prev_t @ self.W_hh.T + self.b_hh)
         
@@ -104,7 +102,7 @@ class RNNCell(object):
         batch_size = delta.shape[0]
 
         # Step backward through the tanh activation function.
-        # Derivative of tanh: d(tanh(x))/dx = 1 - tanh(x)^2
+        # Derivative of tanh
         dz = delta * (1 - h_t**2)
 
         # Compute the averaged gradients of the weights and biases
@@ -113,9 +111,7 @@ class RNNCell(object):
         self.db_ih += dz.sum(axis=0) / batch_size
         self.db_hh += dz.sum(axis=0) / batch_size
 
-        #Compute dx, dh_prev_t
         dx = dz @ self.W_ih
         dh_prev_t = dz @ self.W_hh
 
-        #Return dx, dh_prev_t
         return dx, dh_prev_t

@@ -263,35 +263,28 @@ class CTCLoss(object):
             target_seq = target[batch_itr, :target_lengths[batch_itr]]
             
             # Truncate the logits to input length
-            logit_seq = logits[:input_lengths[batch_itr], batch_itr, :]
+            logit = logits[:input_lengths[batch_itr], batch_itr, :]
             
             # Extend target sequence with blank
-            extended_symbols, skip_connect = self.ctc.extend_target_with_blank(target_seq)
-            self.extended_symbols.append(extended_symbols)
+            extended, skip_connect = self.ctc.extend_target_with_blank(target_seq)
+            self.extended_symbols.append(extended)
             
             # Compute forward probabilities
-            alpha = self.ctc.get_forward_probs(logit_seq, extended_symbols, skip_connect)
+            alpha = self.ctc.get_forward_probs(logit, extended, skip_connect)
             
             # Compute backward probabilities
-            beta = self.ctc.get_backward_probs(logit_seq, extended_symbols, skip_connect)
+            beta = self.ctc.get_backward_probs(logit, extended, skip_connect)
             
             # Compute posteriors
             gamma = self.ctc.get_posterior_probs(alpha, beta)
             self.gammas.append(gamma)
             
-            # Compute loss for this batch
-            # The sequence probability P(Y|X) can be obtained from the
-            # forward probabilities at the final time step:
-            # P(Y|X) = alpha[T-1, S-1] + alpha[T-1, S-2]
-            # (if S>1). Using the last time-step avoids potential
-            # instability from mixing alpha and beta at t=0.
-            T_batch, S = alpha.shape
-            total_prob = alpha[T_batch - 1, S - 1]
-            if S > 1:
-                total_prob += alpha[T_batch - 1, S - 2]
-
-            # Loss is -log P(Y|X)
-            total_loss[batch_itr] = -np.log(total_prob + 1e-10)
+            # Compute loss 
+            for t in range(len(logit)):
+                for s in range(len(extended)):
+                    total_loss[batch_itr] += gamma[t][s] * np.log(logit[t][extended[s]] + 1e-10)
+            
+            total_loss[batch_itr] = -total_loss[batch_itr]
 
         total_loss = np.sum(total_loss) / B
 
@@ -342,7 +335,7 @@ class CTCLoss(object):
             # Get the gamma for this batch
             gamma = self.gammas[batch_itr]
             
-            # Compute derivative: dL/dy_t^k = -∑(r:S_r=k) γ(t,r) / y_t^k
+            # Compute derivative
             T_batch = self.input_lengths[batch_itr]
             
             for t in range(T_batch):
